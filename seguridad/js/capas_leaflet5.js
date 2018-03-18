@@ -1,8 +1,7 @@
 //mapa
 var map = L.map('map', {
-  center: [40.4142671347, -3.6938271523],
-  zoom: 13
-});
+            zoomControl:true, maxZoom:28, minZoom:1
+        }).fitBounds([[36.8062374102,-2.48343278606],[36.8742845291,-2.38929241106]]);
 //mapa de referencia
 var osmAttrib='Map data &copy; OpenStreetMap contributors';
 //Plugin magic goes here! Note that you cannot use the same layer object again, as that will confuse the two map controls
@@ -34,22 +33,31 @@ var paint = L.tileLayer('http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.png',
     ' under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
 });
 
-var icc = L.tileLayer.wms("https://idem.madrid.org/geoidem/UsoDelSuelo/SIGI_MA_VEGETACION_1982/wms?", {
-  layers: 'SIGI_MA_VEGETACION_1982',
+var icc = L.tileLayer.wms("http://www.ideandalucia.es/wms/mta10v_2007?", {
+  layers: 'Edificacion',
   format: 'image/png',
   transparent: true,
-  attribution: "USO DEL SUELO"
+  attribution: "Mapa topografico"
 });
+ var osmGeocoder = new L.Control.OSMGeocoder({
+            collapsed: false,
+            position: 'topright',
+            text: 'Search',
+        });
+        osmGeocoder.addTo(map);
+
+
+
 
 var parques = L.geoJson(parquesjson, {
   onEachFeature: function(feature, layer) {
-    layer.bindPopup(feature.properties.arb_observ);
+    layer.bindPopup(feature.properties.name);
   }
 }).addTo(map);
 
 var estiloCirculosNaranja = {
-  radius: 8,
-  fillColor: "#ff7800",
+  radius: 4,
+  fillColor: "#006400",
   color: "#000",
   weight: 1,
   opacity: 1,
@@ -70,8 +78,17 @@ map.on('draw:created', function(evento) {
   capaEdicion.addLayer(layer);
 });
 
+
 //controles
- 
+ // add location control to global name space for testing only
+
+lc = L.control.locate({
+    strings: {
+        title: "Me muestra donde estoy yo¡"
+    }
+}).addTo(map);
+
+
 L.control.scale({
   position: 'bottomright',
   imperial: false
@@ -86,9 +103,27 @@ var baseMaps = {
 };
 
 var overlays = {
-  "Suelo": icc,
+  "Mapa topografico": icc,
   "Parques": parques
 };
+
+			var select = L.countrySelect().addTo(map);
+
+select.on('change', function(e){
+	if(e.feature === undefined){ //No action when the first item ("Country") is selected
+		return;
+	}
+	var country = L.geoJson(e.feature);
+	if (this.previousCountry != null){
+		map.removeLayer(this.previousCountry);
+	}
+	this.previousCountry = country;
+
+	map.addLayer(country);
+	map.fitBounds(country.getBounds());
+	
+});
+			
 
 L.control.layers(baseMaps, overlays).addTo(map);
 
